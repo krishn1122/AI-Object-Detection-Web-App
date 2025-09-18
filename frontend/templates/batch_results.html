@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Batch Results - Object Detection{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-layer-group text-primary"></i> Batch Detection Results</h2>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-upload"></i> Upload More Images
+            </a>
+        </div>
+
+        {% if result.success %}
+        <!-- Summary Card -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <h4 class="text-primary">{{ result.total_images }}</h4>
+                        <small class="text-muted">Total Images</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h4 class="text-success">{{ result.results | selectattr('success') | list | length }}</h4>
+                        <small class="text-muted">Successful</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h4 class="text-danger">{{ result.results | rejectattr('success') | list | length }}</h4>
+                        <small class="text-muted">Failed</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h4 class="text-info">{{ result.confidence_threshold }}</h4>
+                        <small class="text-muted">Confidence Threshold</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Grid -->
+        <div class="row">
+            {% for item in result.results %}
+            <div class="col-lg-6 col-xl-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="fas fa-image"></i> {{ item.filename }}
+                        </h6>
+                        {% if item.success %}
+                            <span class="badge bg-success">Success</span>
+                        {% else %}
+                            <span class="badge bg-danger">Failed</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-body">
+                        {% if item.success %}
+                            <div class="mb-3">
+                                <strong>Detections:</strong> 
+                                <span class="badge bg-primary">{{ item.total_detections }}</span>
+                            </div>
+                            
+                            {% if item.detections %}
+                                <h6>Objects Found:</h6>
+                                <div class="mb-3">
+                                    {% for detection in item.detections %}
+                                        <span class="badge bg-light text-dark me-1 mb-1">
+                                            {{ detection.class|title }} 
+                                            <small>({{ "%.0f"|format(detection.confidence * 100) }}%)</small>
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                                
+                                <!-- Top detections list -->
+                                <div class="list-group list-group-flush">
+                                    {% for detection in item.detections[:3] %}
+                                    <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+                                        <small>
+                                            <strong>{{ detection.class|title }}</strong>
+                                        </small>
+                                        <small class="badge bg-success">
+                                            {{ "%.0f"|format(detection.confidence * 100) }}%
+                                        </small>
+                                    </div>
+                                    {% endfor %}
+                                    {% if item.detections|length > 3 %}
+                                    <div class="list-group-item px-0 py-2 text-center">
+                                        <small class="text-muted">
+                                            +{{ item.detections|length - 3 }} more objects
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info py-2">
+                                    <small>
+                                        <i class="fas fa-info-circle"></i>
+                                        No objects detected above threshold
+                                    </small>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="alert alert-danger py-2">
+                                <small>
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <strong>Error:</strong> {{ item.error }}
+                                </small>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if item.success and item.detections %}
+                    <div class="card-footer">
+                        <button class="btn btn-outline-primary btn-sm" 
+                                onclick="showDetailModal('{{ item.filename }}', {{ item.detections | tojson }})">
+                            <i class="fas fa-eye"></i> View Details
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Export Options -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-download"></i> Export Batch Results</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-primary w-100" onclick="downloadBatchResults()">
+                            <i class="fas fa-file-code"></i> Download All Results (JSON)
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-success w-100" onclick="downloadSummaryCSV()">
+                            <i class="fas fa-file-csv"></i> Download Summary (CSV)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% else %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Error:</strong> Failed to process the batch. Please try again.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Detection Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden data for JavaScript -->
+<script type="application/json" id="batch-data">
+{{ result | tojson }}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Get batch data
+    const batchData = JSON.parse(document.getElementById('batch-data').textContent);
+    
+    // Show detail modal
+    function showDetailModal(filename, detections) {
+        document.getElementById('modalTitle').textContent = `Detection Details - ${filename}`;
+        
+        let modalContent = '<div class="table-responsive"><table class="table table-striped">';
+        modalContent += '<thead><tr><th>Object</th><th>Confidence</th><th>Bounding Box</th></tr></thead><tbody>';
+        
+        detections.forEach(detection => {
+            modalContent += `
+                <tr>
+                    <td><strong>${detection.class}</strong></td>
+                    <td>
+                        <span class="badge bg-success">${(detection.confidence * 100).toFixed(1)}%</span>
+                    </td>
+                    <td>
+                        <small class="text-muted">
+                            (${detection.bbox.xmin.toFixed(0)}, ${detection.bbox.ymin.toFixed(0)}) - 
+                            (${detection.bbox.xmax.toFixed(0)}, ${detection.bbox.ymax.toFixed(0)})
+                        </small>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        modalContent += '</tbody></table></div>';
+        document.getElementById('modalBody').innerHTML = modalContent;
+        
+        new bootstrap.Modal(document.getElementById('detailModal')).show();
+    }
+    
+    // Download batch results as JSON
+    function downloadBatchResults() {
+        const dataStr = JSON.stringify(batchData, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `batch_detection_results_${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+    
+    // Download summary as CSV
+    function downloadSummaryCSV() {
+        let csvContent = 'Filename,Success,Total Detections,Objects\n';
+        
+        batchData.results.forEach(item => {
+            const objects = item.success && item.detections ? 
+                item.detections.map(d => `${d.class}(${(d.confidence * 100).toFixed(0)}%)`).join('; ') : 
+                '';
+            
+            csvContent += `"${item.filename}",${item.success},${item.total_detections || 0},"${objects}"\n`;
+        });
+        
+        const dataBlob = new Blob([csvContent], {type: 'text/csv'});
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `batch_summary_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+</script>
+{% endblock %}

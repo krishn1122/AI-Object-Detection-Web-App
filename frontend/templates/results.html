@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Detection Results - Object Detection{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-search-plus text-primary"></i> Detection Results</h2>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-upload"></i> Upload Another Image
+            </a>
+        </div>
+
+        {% if result.success %}
+        <div class="row">
+            <!-- Image Display -->
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-image"></i> {{ result.filename }}</h5>
+                        <small class="text-muted">
+                            Size: {{ result.image_size.width }}x{{ result.image_size.height }}px
+                        </small>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="image-container">
+                            <img id="detection-image" 
+                                 src="data:image/jpeg;base64,{{ result.image_base64 }}" 
+                                 class="img-fluid" 
+                                 alt="Detected Image"
+                                 style="max-width: 100%; height: auto;">
+                            
+                            <!-- Bounding boxes will be added here by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detection Summary -->
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-list"></i> Detection Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <strong>Total Detections:</strong> 
+                            <span class="badge bg-primary">{{ result.total_detections }}</span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Confidence Threshold:</strong> 
+                            <span class="badge bg-info">{{ "%.1f"|format(result.confidence_threshold) }}</span>
+                        </div>
+                        
+                        {% if result.detections %}
+                        <h6>Detected Objects:</h6>
+                        <div class="list-group list-group-flush">
+                            {% for detection in result.detections %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ detection.class|title }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        Confidence: {{ "%.2f"|format(detection.confidence) }}
+                                    </small>
+                                </div>
+                                <span class="badge bg-success rounded-pill">
+                                    {{ "%.0f"|format(detection.confidence * 100) }}%
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            No objects detected above the confidence threshold.
+                            Try lowering the threshold or using a different image.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Download Options -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6><i class="fas fa-download"></i> Export Results</h6>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-outline-primary btn-sm w-100 mb-2" onclick="downloadResults()">
+                            <i class="fas fa-file-code"></i> Download JSON
+                        </button>
+                        <button class="btn btn-outline-success btn-sm w-100" onclick="downloadImage()">
+                            <i class="fas fa-image"></i> Download Image
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Error:</strong> Failed to process the image. Please try again.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Hidden data for JavaScript -->
+<script type="application/json" id="detection-data">
+{{ result | tojson }}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Get detection data
+    const detectionData = JSON.parse(document.getElementById('detection-data').textContent);
+    
+    // Draw bounding boxes on the image
+    function drawBoundingBoxes() {
+        const img = document.getElementById('detection-image');
+        const container = img.parentElement;
+        
+        // Wait for image to load
+        img.onload = function() {
+            // Remove existing boxes
+            const existingBoxes = container.querySelectorAll('.detection-box');
+            existingBoxes.forEach(box => box.remove());
+            
+            // Get image display dimensions
+            const imgRect = img.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+            
+            // Calculate scale factors
+            const scaleX = img.clientWidth / detectionData.image_size.width;
+            const scaleY = img.clientHeight / detectionData.image_size.height;
+            
+            // Draw each detection
+            detectionData.detections.forEach((detection, index) => {
+                const bbox = detection.bbox;
+                
+                // Scale coordinates
+                const x = bbox.xmin * scaleX;
+                const y = bbox.ymin * scaleY;
+                const width = (bbox.xmax - bbox.xmin) * scaleX;
+                const height = (bbox.ymax - bbox.ymin) * scaleY;
+                
+                // Create bounding box element
+                const boxElement = document.createElement('div');
+                boxElement.className = 'detection-box';
+                boxElement.style.left = x + 'px';
+                boxElement.style.top = y + 'px';
+                boxElement.style.width = width + 'px';
+                boxElement.style.height = height + 'px';
+                
+                // Create label element
+                const labelElement = document.createElement('div');
+                labelElement.className = 'detection-label';
+                labelElement.textContent = `${detection.class}: ${(detection.confidence * 100).toFixed(0)}%`;
+                
+                boxElement.appendChild(labelElement);
+                container.appendChild(boxElement);
+            });
+        };
+        
+        // Trigger load if image is already loaded
+        if (img.complete) {
+            img.onload();
+        }
+    }
+    
+    // Redraw boxes when window is resized
+    window.addEventListener('resize', drawBoundingBoxes);
+    
+    // Initial draw
+    drawBoundingBoxes();
+    
+    // Download functions
+    function downloadResults() {
+        const dataStr = JSON.stringify(detectionData, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `detection_results_${detectionData.filename}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+    
+    function downloadImage() {
+        const link = document.createElement('a');
+        link.href = `data:image/jpeg;base64,${detectionData.image_base64}`;
+        link.download = detectionData.filename;
+        link.click();
+    }
+</script>
+{% endblock %}

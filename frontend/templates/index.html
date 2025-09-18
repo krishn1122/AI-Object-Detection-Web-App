@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Image - Object Detection{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="text-center mb-5">
+            <h1 class="display-4"><i class="fas fa-camera text-primary"></i> Object Detection</h1>
+            <p class="lead">Upload an image to detect objects using AI-powered DETR model</p>
+        </div>
+
+        {% if not backend_status %}
+        <div class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Backend Offline!</strong> Please start the FastAPI backend server first:
+            <code>cd backend && python main.py</code>
+        </div>
+        {% endif %}
+
+        <!-- Single Image Upload -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-upload"></i> Single Image Detection</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('upload_file') }}" enctype="multipart/form-data">
+                    <div class="upload-area mb-3" id="single-upload-area">
+                        <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                        <h5>Drag & Drop or Click to Upload</h5>
+                        <p class="text-muted">Supported formats: PNG, JPG, JPEG, GIF, BMP, WEBP</p>
+                        <input type="file" name="file" id="single-file" accept="image/*" style="display: none;" required>
+                        <div id="single-file-info" class="mt-2"></div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="confidence" class="form-label">Confidence Threshold</label>
+                            <input type="range" class="form-range" id="confidence" name="confidence" 
+                                   min="0.1" max="1.0" step="0.1" value="0.7" 
+                                   oninput="document.getElementById('confidence-value').textContent = this.value">
+                            <small class="text-muted">Current: <span id="confidence-value">0.7</span></small>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-lg" {% if not backend_status %}disabled{% endif %}>
+                        <i class="fas fa-search"></i> Detect Objects
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Batch Upload -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-images"></i> Batch Image Detection</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('batch_upload') }}" enctype="multipart/form-data">
+                    <div class="upload-area mb-3" id="batch-upload-area">
+                        <i class="fas fa-images fa-3x text-muted mb-3"></i>
+                        <h5>Upload Multiple Images</h5>
+                        <p class="text-muted">Select multiple images for batch processing</p>
+                        <input type="file" name="files" id="batch-files" accept="image/*" multiple style="display: none;" required>
+                        <div id="batch-file-info" class="mt-2"></div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="batch-confidence" class="form-label">Confidence Threshold</label>
+                            <input type="range" class="form-range" id="batch-confidence" name="confidence" 
+                                   min="0.1" max="1.0" step="0.1" value="0.7" 
+                                   oninput="document.getElementById('batch-confidence-value').textContent = this.value">
+                            <small class="text-muted">Current: <span id="batch-confidence-value">0.7</span></small>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success btn-lg" {% if not backend_status %}disabled{% endif %}>
+                        <i class="fas fa-layer-group"></i> Batch Detect
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sample Images -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-star"></i> Try Sample Images</h5>
+            </div>
+            <div class="card-body">
+                <p>Don't have an image? Try these sample images from your project:</p>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1zaXplPSIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SnVuZ2xlPC90ZXh0Pjwvc3ZnPg==" 
+                                 class="card-img-top" alt="Jungle">
+                            <div class="card-body text-center">
+                                <small class="text-muted">jungle.jpg</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1zaXplPSIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+WmVicmE8L3RleHQ+PC9zdmc+" 
+                                 class="card-img-top" alt="Zebra">
+                            <div class="card-body text-center">
+                                <small class="text-muted">Zebra.jpg</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1zaXplPSIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2NydWI8L3RleHQ+PC9zdmc+" 
+                                 class="card-img-top" alt="Scrub">
+                            <div class="card-body text-center">
+                                <small class="text-muted">scrub.jpg</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Setup drag and drop for single upload
+    const singleUploadArea = document.getElementById('single-upload-area');
+    const singleFileInput = document.getElementById('single-file');
+    setupDragAndDrop(singleUploadArea, singleFileInput);
+
+    // Setup drag and drop for batch upload
+    const batchUploadArea = document.getElementById('batch-upload-area');
+    const batchFileInput = document.getElementById('batch-files');
+    setupDragAndDrop(batchUploadArea, batchFileInput);
+
+    // Update file info when files are selected
+    singleFileInput.addEventListener('change', (e) => {
+        updateFileInfo(e.target.files);
+        document.getElementById('single-file-info').innerHTML = 
+            e.target.files.length > 0 ? 
+            `<i class="fas fa-file-image text-primary"></i> ${e.target.files[0].name}` : '';
+    });
+
+    batchFileInput.addEventListener('change', (e) => {
+        document.getElementById('batch-file-info').innerHTML = 
+            e.target.files.length > 0 ? 
+            `<i class="fas fa-images text-primary"></i> ${e.target.files.length} files selected` : '';
+    });
+
+    // Override updateFileInfo for this page
+    function updateFileInfo(files) {
+        // This function is called from base.html drag and drop
+        if (files.length === 1) {
+            document.getElementById('single-file-info').innerHTML = 
+                `<i class="fas fa-file-image text-primary"></i> ${files[0].name}`;
+        } else if (files.length > 1) {
+            document.getElementById('batch-file-info').innerHTML = 
+                `<i class="fas fa-images text-primary"></i> ${files.length} files selected`;
+        }
+    }
+</script>
+{% endblock %}
