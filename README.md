@@ -2,7 +2,9 @@
 
 <div align="center">
 
-![Object Detection](assets\Dashboard.png)
+![AI Object Detection Dashboard](assets/Dashboard.png)
+
+*🎨 Modern web interface with drag-and-drop functionality and real-time object detection*
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com)
@@ -12,7 +14,7 @@
 
 *A modern, production-ready web application for AI-powered object detection using Facebook's DETR model*
 
-[🚀 Live Demo](#demo) • [📖 Documentation](#documentation) • [🛠️ Installation](#installation) • [🤝 Contributing](#contributing)
+[📸 Dashboard](#dashboard-preview) • [🛠️ Installation](#installation) • [🚀 Quick Start](#quick-start) • [📖 Documentation](#documentation) • [🤝 Contributing](#contributing)
 
 </div>
 
@@ -111,6 +113,25 @@ docker-compose up --build
 
 # Access at http://localhost:5000
 ```
+
+## 📸 Dashboard Preview
+
+<div align="center">
+
+### 🎨 Modern Web Interface
+
+The application features a clean, responsive dashboard with:
+- **Drag & Drop Upload**: Simply drag images or click to browse
+- **Real-time Processing**: Instant object detection with progress indicators  
+- **Interactive Results**: Bounding boxes with confidence scores
+- **Batch Processing**: Handle multiple images simultaneously
+- **Export Options**: Download results in JSON/CSV formats
+
+![Dashboard Features](assets/Dashboard.png)
+
+*The dashboard automatically detects objects and displays them with labeled bounding boxes and confidence percentages*
+
+</div>
 
 ## 🎯 Usage
 
